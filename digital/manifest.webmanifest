@@ -1,0 +1,13 @@
+{
+  "name": "ZAVIAN Panel Digital",
+  "short_name": "ZAVIAN",
+  "description": "Panel digital de proveedores, contactos, catálogo y ventas de ZAVIAN.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#172b4d",
+  "lang": "es-AR",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

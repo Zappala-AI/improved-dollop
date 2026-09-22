@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: zavian
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: ./digital
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

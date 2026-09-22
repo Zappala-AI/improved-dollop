@@ -1,0 +1,14 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/digital/index.html" },
+    { "source": "/manifest.webmanifest", "destination": "/digital/manifest.webmanifest" },
+    { "source": "/sw.js", "destination": "/digital/sw.js" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
+}
