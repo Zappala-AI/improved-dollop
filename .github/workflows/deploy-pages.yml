@@ -28,7 +28,7 @@ jobs:
       - name: Preparar panel estático
         run: |
           mkdir -p _site
-          cp -r ZAVIAN/digital/. _site/
+          cp -r digital/. _site/
       - name: Subir artefacto
         uses: actions/upload-pages-artifact@v3
         with:
