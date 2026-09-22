@@ -1,3 +1,4 @@
 GitHubDesktopSetup.exe
 outputs/
+builder/node_modules/
 *.log
