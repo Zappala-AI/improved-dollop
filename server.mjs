@@ -10,6 +10,8 @@ fs.mkdirSync(dataDir,{recursive:true});
 const read=(file,fallback)=>{try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch{return fallback}};
 let store=read(dataFile,{brand:'VNBX_STORE',description:'Venta mayorista y minorista para emprendedores. Ofrecemos productos de calidad.',whatsapp:'',products:[]});
 let auth=read(authFile,{password:''});
+const envAdminPassword=process.env.ADMIN_PASSWORD;
+if(envAdminPassword){auth={password:String(envAdminPassword)};fs.writeFileSync(authFile,JSON.stringify(auth));}
 const save=()=>fs.writeFileSync(dataFile,JSON.stringify(store,null,2));
 const json=(res,status,obj)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type,x-admin-key','Access-Control-Allow-Methods':'GET,POST,PUT,OPTIONS'});res.end(JSON.stringify(obj));};
 const body=req=>new Promise(resolve=>{let s='';req.on('data',c=>s+=c);req.on('end',()=>{try{resolve(JSON.parse(s||'{}'))}catch{resolve({})}})});
