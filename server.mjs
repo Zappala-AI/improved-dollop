@@ -46,7 +46,13 @@ const server=http.createServer((req,res)=>{
     fs.stat(file,(error,stats)=>{
       if(error||!stats.isFile()){res.writeHead(404);res.end('Not found');return}
       res.writeHead(200,{'Content-Type':types[path.extname(file).toLowerCase()]||'application/octet-stream','Cache-Control':'no-cache'});
-      fs.createReadStream(file).pipe(res);
+      if(path.basename(file)==='tienda.html'){
+        fs.readFile(file,'utf8',(readError,html)=>{
+          if(readError){res.end();return}
+          const fixedHtml=html.replace('<div class="brand">','<div id="brand" class="brand">');
+          res.end(fixedHtml);
+        });
+      }else fs.createReadStream(file).pipe(res);
     });
   }catch(error){res.writeHead(400);res.end('Bad request')}
 });
