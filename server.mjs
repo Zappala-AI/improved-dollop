@@ -12,7 +12,7 @@ const dataDir = process.env.VNBX_DATA_DIR || path.join(root, 'data');
 const storeFile = path.join(dataDir, 'store.json');
 const authFile = path.join(dataDir, 'admin.json');
 const supabaseUrl = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const supabaseReadKey = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+const supabaseReadKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_KEY || '');
 const supabaseWriteKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '');
 const port = Number(process.env.PORT || process.env.ZAVIAN_PORT || 8765);
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml'};
@@ -37,6 +37,10 @@ async function writeStore(value){
   }else if(supabaseUrl&&!supabaseWriteKey)throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY');
   await writeJson(storeFile,value);
 }
+function publicStore(value){
+  const privateFields=new Set(['cost','supplier','provider','origin','purchasePrice']);
+  return {...value,products:(value.products||[]).map(product=>Object.fromEntries(Object.entries(product).filter(([key])=>!privateFields.has(key))))};
+}
 function hashPassword(password, salt=crypto.randomBytes(16).toString('hex')){return {salt,hash:crypto.scryptSync(password,salt,64).toString('hex')}}
 function validPassword(password, record){return crypto.timingSafeEqual(Buffer.from(hashPassword(password,record.salt).hash,'hex'),Buffer.from(record.hash,'hex'))}
 function cookies(req){return Object.fromEntries((req.headers.cookie||'').split(';').filter(Boolean).map(x=>{const i=x.indexOf('=');return [x.slice(0,i).trim(),decodeURIComponent(x.slice(i+1))]}))}
@@ -58,7 +62,7 @@ const server=http.createServer((req,res)=>{
     if(requestPath==='/api/auth/setup'&&req.method==='POST'){body(req).then(async input=>{const existing=await readJson(authFile,null);if(existing)return json(res,409,{error:'El acceso ya está configurado'});if(!input.password||String(input.password).length<4)return json(res,400,{error:'La contraseña debe tener al menos 4 caracteres'});await writeJson(authFile,hashPassword(String(input.password)));const token=crypto.randomBytes(32).toString('hex');sessions.set(token,Date.now());json(res,200,{ok:true,token},{'Set-Cookie':`vnbx_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`})}).catch(()=>json(res,400,{error:'Solicitud inválida'}));return}
     if(requestPath==='/api/auth/login'&&req.method==='POST'){body(req).then(async input=>{const record=await readJson(authFile,null),password=String(input.password||''),environmentPassword=String(process.env.ADMIN_PASSWORD||'');const valid=record&&validPassword(password,record),validEnvironment=environmentPassword&&password===environmentPassword;if(!password||(!valid&&!validEnvironment))return json(res,401,{error:'Contraseña incorrecta'});if(validEnvironment&&!valid)await writeJson(authFile,hashPassword(password));const token=crypto.randomBytes(32).toString('hex');sessions.set(token,Date.now());json(res,200,{ok:true,token},{'Set-Cookie':`vnbx_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`})}).catch(()=>json(res,400,{error:'Solicitud inválida'}));return}
     if(requestPath==='/api/auth/logout'&&req.method==='POST'){const token=cookies(req).vnbx_session;sessions.delete(token);json(res,200,{ok:true},{'Set-Cookie':'vnbx_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'});return}
-    if(requestPath==='/api/store'&&req.method==='GET'){readStore().then(value=>json(res,200,value)).catch(error=>{console.error('[store] read failed',error);json(res,503,{error:'No se pudo leer la tienda'})});return}
+    if(requestPath==='/api/store'&&req.method==='GET'){readStore().then(value=>json(res,200,authenticated(req)?value:publicStore(value))).catch(error=>{console.error('[store] read failed',error);json(res,503,{error:'No se pudo leer la tienda'})});return}
     if(requestPath==='/api/store'&&req.method==='PUT'){if(!authenticated(req)){json(res,401,{error:'No autorizado'});return}body(req).then(async value=>{await writeStore(value);json(res,200,{ok:true})}).catch(error=>{console.error('[store] write failed',error);json(res,503,{error:'No se pudo guardar la tienda'})});return}
     const relative=requestPath==='/'?'tienda.html':requestPath.replace(/^\/+/,''), file=path.resolve(publicDir,relative);
     if(!file.startsWith(path.resolve(publicDir)+path.sep)){res.writeHead(403);res.end('Forbidden');return}
